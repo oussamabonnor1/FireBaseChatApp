@@ -28,7 +28,11 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import com.firebase.ui.auth.AuthUI;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -37,6 +41,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.jetlightstudio.firebasechat.R;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import androidx.annotation.NonNull;
@@ -56,11 +61,18 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
     private Button mSendButton;
+    private String mUsername;
+
+    //region FireBase stuff
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference messagesReference;
     private ChildEventListener eventListener;
 
-    private String mUsername;
+    private FirebaseAuth firebaseAuth;
+    private FirebaseAuth.AuthStateListener stateListener;
+
+    private static final int RC_SIGN_IN = 123;
+    //endregion
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
         mUsername = ANONYMOUS;
 
         firebaseDatabase = FirebaseDatabase.getInstance();
+        firebaseAuth = FirebaseAuth.getInstance();
         messagesReference = firebaseDatabase.getReference("messages");
 
         // Initialize references to views
@@ -156,6 +169,26 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         messagesReference.addChildEventListener(eventListener);
+
+        stateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user == null) {
+                    startActivityForResult(
+                            AuthUI.getInstance()
+                                    .createSignInIntentBuilder()
+                                    .setIsSmartLockEnabled(false)
+                                    .setAvailableProviders(Arrays.asList(
+                                            new AuthUI.IdpConfig.GoogleBuilder().build(),
+                                            new AuthUI.IdpConfig.EmailBuilder().build()))
+                                    .build(),
+                            RC_SIGN_IN);
+                } else {
+                    Toast.makeText(getApplicationContext(), "TOZ", Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
     }
 
     @Override
@@ -168,5 +201,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        firebaseAuth.addAuthStateListener(stateListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        firebaseAuth.removeAuthStateListener(stateListener);
     }
 }
