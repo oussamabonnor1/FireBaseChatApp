@@ -16,6 +16,7 @@
 package com.jetlightstudio.firebasechat.friendlychat;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -32,6 +33,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
@@ -39,6 +41,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.jetlightstudio.firebasechat.R;
 
 import java.util.ArrayList;
@@ -63,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText mMessageEditText;
     private Button mSendButton;
     private String mUsername;
-    private static final int RC_PHOTO_PICKER =  2;
+    private static final int RC_PHOTO_PICKER = 2;
 
     //region FireBase stuff
     private FirebaseDatabase firebaseDatabase;
@@ -72,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth firebaseAuth;
     private FirebaseAuth.AuthStateListener stateListener;
+
+    private FirebaseStorage firebaseStorage;
+    private StorageReference storageReference;
 
     private static final int RC_SIGN_IN = 123;
     //endregion
@@ -85,7 +93,9 @@ public class MainActivity extends AppCompatActivity {
 
         firebaseDatabase = FirebaseDatabase.getInstance();
         firebaseAuth = FirebaseAuth.getInstance();
-        messagesReference = firebaseDatabase.getReference("messages");
+        firebaseStorage = FirebaseStorage.getInstance();
+        messagesReference = firebaseDatabase.getReference().child("messages");
+        storageReference = firebaseStorage.getReference().child("chat_photos");
 
         // Initialize references to views
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
@@ -138,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // TODO: Send messages on click
                 FriendlyMessage friendlyMessage = new FriendlyMessage(mMessageEditText.getText().toString(), mUsername, null);
                 // Clear input box
                 messagesReference.push().setValue(friendlyMessage);
@@ -178,6 +187,22 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Signed In Cancalled!", Toast.LENGTH_SHORT).show();
                 finish();
             }
+        } else if (requestCode == RC_PHOTO_PICKER && resultCode == RESULT_OK) {
+            final Uri photoUri = data.getData();
+            final StorageReference tempStorage = storageReference.child(photoUri.getLastPathSegment());
+            UploadTask uploadTask = tempStorage.putFile(photoUri);
+            uploadTask.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    tempStorage.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            FriendlyMessage message = new FriendlyMessage(null, mUsername, uri.toString());
+                            messagesReference.push().setValue(message);
+                        }
+                    });
+                }
+            });
         }
     }
 
