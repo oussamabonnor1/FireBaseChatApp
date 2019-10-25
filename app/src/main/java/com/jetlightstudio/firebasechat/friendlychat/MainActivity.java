@@ -15,6 +15,7 @@
  */
 package com.jetlightstudio.firebasechat.friendlychat;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -141,40 +142,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        eventListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                FriendlyMessage message = dataSnapshot.getValue(FriendlyMessage.class);
-                mMessageAdapter.add(message);
-            }
-
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-            }
-
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        };
-        messagesReference.addChildEventListener(eventListener);
-
         stateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
                 if (user == null) {
+                    onSignedInClear();
                     startActivityForResult(
                             AuthUI.getInstance()
                                     .createSignInIntentBuilder()
@@ -185,11 +158,25 @@ public class MainActivity extends AppCompatActivity {
                                     .build(),
                             RC_SIGN_IN);
                 } else {
-                    Toast.makeText(getApplicationContext(), "TOZ", Toast.LENGTH_SHORT).show();
+                    onSignedInInitialize(user.getDisplayName());
                 }
             }
         };
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_SIGN_IN) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(getApplicationContext(), "Signed In successfully!", Toast.LENGTH_SHORT).show();
+            } else if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(getApplicationContext(), "Signed In Cancalled!", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -200,7 +187,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+            case R.id.sign_out_menu:
+                AuthUI.getInstance().signOut(getApplicationContext());
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+
     }
 
     @Override
@@ -213,5 +207,53 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         firebaseAuth.removeAuthStateListener(stateListener);
+        mMessageAdapter.clear();
+        if (eventListener != null) {
+            messagesReference.removeEventListener(eventListener);
+            eventListener = null;
+        }
+    }
+
+    private void onSignedInInitialize(String userName) {
+        mUsername = userName;
+        if (eventListener == null) {
+            eventListener = new ChildEventListener() {
+                @Override
+                public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                    FriendlyMessage message = dataSnapshot.getValue(FriendlyMessage.class);
+                    mMessageAdapter.add(message);
+                }
+
+                @Override
+                public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                }
+
+                @Override
+                public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+                }
+
+                @Override
+                public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            };
+            messagesReference.addChildEventListener(eventListener);
+        }
+    }
+
+    private void onSignedInClear() {
+        mUsername = ANONYMOUS;
+        mMessageAdapter.clear();
+        if (eventListener != null) {
+            messagesReference.removeEventListener(eventListener);
+            eventListener = null;
+        }
     }
 }
