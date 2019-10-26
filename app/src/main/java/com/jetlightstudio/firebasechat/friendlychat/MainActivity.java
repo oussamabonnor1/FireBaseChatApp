@@ -41,6 +41,8 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -48,7 +50,9 @@ import com.jetlightstudio.firebasechat.R;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -60,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String ANONYMOUS = "anonymous";
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 1000;
+    private static String MESSAGE_LENGTH_KEY = "message_length";
 
     private ListView mMessageListView;
     private MessageAdapter mMessageAdapter;
@@ -81,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseStorage firebaseStorage;
     private StorageReference storageReference;
 
+    private FirebaseRemoteConfig remoteConfig;
+
     private static final int RC_SIGN_IN = 123;
     //endregion
 
@@ -94,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
         firebaseDatabase = FirebaseDatabase.getInstance();
         firebaseAuth = FirebaseAuth.getInstance();
         firebaseStorage = FirebaseStorage.getInstance();
+        remoteConfig = FirebaseRemoteConfig.getInstance();
         messagesReference = firebaseDatabase.getReference().child("messages");
         storageReference = firebaseStorage.getReference().child("chat_photos");
 
@@ -175,6 +183,26 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+        FirebaseRemoteConfigSettings settings = new FirebaseRemoteConfigSettings.Builder()
+                .setMinimumFetchIntervalInSeconds(0).build();
+        remoteConfig.setConfigSettingsAsync(settings);
+
+        Map<String, Object> defaultConfig = new HashMap<>();
+        defaultConfig.put(MESSAGE_LENGTH_KEY, DEFAULT_MSG_LENGTH_LIMIT);
+        remoteConfig.setDefaultsAsync(defaultConfig);
+        fetchConfig();
+    }
+
+    private void fetchConfig() {
+        remoteConfig.fetch().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                remoteConfig.activate();
+                Long newLength = remoteConfig.getLong(MESSAGE_LENGTH_KEY);
+                mMessageEditText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(newLength.intValue())});
+                Toast.makeText(getApplicationContext(), "length: " + newLength, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
