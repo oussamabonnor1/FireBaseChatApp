@@ -8,7 +8,7 @@ a simple android app that uses FireBase and implements it's features to ensure f
 
 `the google-services.json file is not included in this project, if you want to use the app make sure to use your own firebase project and include your google services settings in it.`
 
-## Featres:
+## Features:
 * Instant messaging.
 * Authentication using google accounts or email/password combo.
 * Sending images and receiving them.
