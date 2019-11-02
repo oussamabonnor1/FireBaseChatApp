@@ -6,6 +6,8 @@
 ## Description:
 a simple android app that uses FireBase and implements it's features to ensure fluent messaging functions.
 
+`the google-services.json file is not included in this project, if you want to use the app make sure to use your own firebase project and include your google services settings in it.`
+
 ## Featres:
 * Instant messaging.
 * Authentication using google accounts or email/password combo.
@@ -19,10 +21,11 @@ a simple android app that uses FireBase and implements it's features to ensure f
 * Paint.Net (Image editting).
 
 ## Screenshots: 
-![Chat App](Screenshots/mainActivity.jpg)
+<img src="Screenshots/mainActivity.jpg" width = "250" />
 
 ## Contribution:
 Feel free to `fork` this project and add whatever you like. If you have any suggestions or any comments please feel free to contact me or to open an issue, use free license art assets please.
+P.S: the google-services.json file is not included in this project, if you want to use the app make sure to use your own firebase project and include your google services settings in it. 
 
 ## Team:
 [Jetlighters](https://github.com/JetLightStudio) having fun.
